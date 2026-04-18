@@ -1,0 +1,44 @@
+#include <TimerOne.h>
+
+#define POT_PIN A0
+#define SERVO_PIN 9
+
+volatile int servoAngle = 90;  // Угол 0..180
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(SERVO_PIN, OUTPUT);
+  
+  // Настройка таймера на 50 Гц (период 20 мс)
+  Timer1.initialize(20000);    // 20000 микросекунд = 20 мс
+  // Прикрепляем функцию генерации импульса к таймеру
+  Timer1.attachInterrupt(generateServoPulse);
+}
+
+void generateServoPulse() {
+  // Длительность импульса: 1000 + угол * (2000-1000)/180
+  int pulseWidth = map(servoAngle, 0, 180, 1000, 2000);
+  digitalWrite(SERVO_PIN, HIGH);
+  delayMicroseconds(pulseWidth);   // В прерывании допустимо (длится недолго)
+  digitalWrite(SERVO_PIN, LOW);
+}
+
+void loop() {
+  int potValue = analogRead(POT_PIN);
+  int newAngle = map(potValue, 0, 1023, 0, 180);
+  
+  // Плавное изменение (опционально)
+  if (newAngle != servoAngle) {
+    servoAngle = newAngle;
+  }
+  
+  static unsigned long lastPrint = 0;
+  if (millis() - lastPrint >= 200) {
+    lastPrint = millis();
+    Serial.print("Pot: ");
+    Serial.print(potValue);
+    Serial.print(" -> Angle: ");
+    Serial.println(servoAngle);
+  }
+}
+
